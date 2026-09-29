@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#092c3a">
+  <title>เฝ้าระวังน้ำระยอง | Rayong Flood Watch</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar"><div class="wrap topbar-inner">
+    <div class="brand"><span class="brand-mark">≈</span><span><span data-i18n="brand">เฝ้าระวังน้ำระยอง</span><small>RAYONG FLOOD WATCH</small></span></div>
+    <div class="top-actions"><span id="connection" class="connection">กำลังโหลดข้อมูล…</span><button id="language" type="button" aria-label="Switch to English">English</button><button id="refresh" type="button">↻ <span data-i18n="refresh">อัปเดต</span></button></div>
+  </div></header>
+  <main class="wrap">
+    <section class="hero">
+      <p class="eyebrow" data-i18n="eyebrow">ข้อมูลสาธารณะ · อำเภอเมืองระยอง</p>
+      <h1 data-i18n-html="heroTitle">ติดตามน้ำต้นทาง<br><em>พร้อมระดับน้ำในพื้นที่</em></h1>
+      <p class="hero-copy" data-i18n="heroCopy">ข้อมูลจากอ่างเก็บน้ำ 3 แห่ง ระดับน้ำจากสถานีใกล้เมือง และฝนในอำเภอเมืองระยอง เพื่อช่วยให้ชุมชนเห็นสถานการณ์ในภาพเดียว</p>
+      <div class="hero-meta"><span class="live-dot"></span><span id="updated">กำลังติดต่อแหล่งข้อมูล</span><span class="meta-divider"></span><span data-i18n="timeZone">เวลาไทย (ICT)</span></div>
+    </section>
+    <div class="notice" role="status" data-i18n-html="notice">ระดับน้ำที่สถานีวัด <strong>ไม่ใช่ระดับน้ำท่วมบนถนนในตัวเมือง</strong> หากพื้นที่ของคุณมีน้ำท่วม โปรดใช้สภาพจริงและประกาศจากหน่วยงานท้องถิ่นประกอบ</div>
+    <section class="section" aria-labelledby="gauge-heading">
+      <div class="section-head"><div><p class="section-kicker" data-i18n="gaugeKicker">01 / ระดับน้ำ</p><h2 id="gauge-heading" data-i18n="gaugeHeading">สถานีตรวจวัดใกล้พื้นที่</h2></div><a class="section-link" href="https://rayong.thaiwater.net/wl" target="_blank" rel="noopener noreferrer" data-i18n="viewSource">ดูต้นทาง ↗</a></div>
+      <div id="gauges" class="gauge-grid"><div class="skeleton tall"></div><div class="skeleton tall"></div></div>
+      <p class="section-note" data-i18n="gaugeNote">หนองบัวอยู่บนลำน้ำคลองใหญ่ในอำเภอบ้านค่าย (ต้นน้ำของตัวเมือง) ส่วนบ้านเขาโบสถ์อยู่ในตำบลทับมา อำเภอเมืองระยอง บนคลองกระเฉด สถานีทั้งสองไม่ได้วัดระดับน้ำถนนในย่านใจกลางเมือง</p>
+    </section>
+    <section class="section" aria-labelledby="release-heading">
+      <div class="section-head"><div><p class="section-kicker" data-i18n="reservoirKicker">02 / ต้นน้ำ</p><h2 id="release-heading" data-i18n="reservoirHeading">อ่างเก็บน้ำที่เชื่อมสู่แม่น้ำระยอง</h2></div><span class="section-subtle" data-i18n="reservoirSubtle">ข้อมูลรายวันจากกรมชลประทาน</span></div>
+      <div id="reservoirs" class="reservoir-grid"><div class="skeleton tall"></div><div class="skeleton tall"></div><div class="skeleton tall"></div></div>
+      <p class="section-note" data-i18n="reservoirNote">“น้ำระบาย” เป็นค่าที่ API รายงานตามวันที่แสดง ไม่ใช่ปริมาณน้ำที่จะถึงตัวเมืองทันที และเอกสาร API ไม่ระบุหน่วยเวลาของช่องนี้</p>
+    </section>
+    <section class="section" aria-labelledby="trend-heading">
+      <div class="section-head"><div><p class="section-kicker" data-i18n="trendKicker">03 / แนวโน้ม</p><h2 id="trend-heading" data-i18n="trendHeading">ดูการเปลี่ยนแปลง</h2></div></div>
+      <div class="chart-grid">
+        <article class="panel"><div class="panel-heading"><div><h3 data-i18n="levelChartTitle">ระดับน้ำ 48 ชั่วโมง</h3><p data-i18n="levelChartSub">หนองบัว · คลองใหญ่ · เมตรเหนือระดับน้ำทะเลปานกลาง</p></div><span class="legend aqua" data-i18n="waterLevel">ระดับน้ำ</span></div><div id="gauge-chart" class="chart-body">กำลังโหลดกราฟ…</div></article>
+        <article class="panel"><div class="panel-heading"><div><h3 data-i18n="releaseChartTitle">น้ำระบายย้อนหลัง 7 วัน</h3><p data-i18n="releaseChartSub">ค่าตาม RID API · อ่านแต่ละอ่างแยกกัน</p></div></div><div id="release-chart" class="chart-body">กำลังโหลดกราฟ…</div><div class="chart-legend"><span><i class="swatch blue"></i><span data-i18n="nongPlaLai">หนองปลาไหล</span></span><span><i class="swatch green"></i><span data-i18n="dokKrai">ดอกกราย</span></span><span><i class="swatch orange"></i><span data-i18n="khlongYai">คลองใหญ่</span></span></div></article>
+      </div>
+      <p class="section-note" data-i18n="trendNote">กราฟแสดงค่าควบคู่กันเพื่อช่วยติดตามเวลา ยังไม่สามารถใช้สรุปว่าการระบายจากอ่างเป็นสาเหตุของน้ำท่วมจุดใด เพราะฝนในพื้นที่ ทางระบายน้ำ และสภาพปลายน้ำก็มีผล</p>
+    </section>
+    <section class="section" aria-labelledby="rain-heading">
+      <div class="section-head"><div><p class="section-kicker" data-i18n="rainKicker">04 / ฝนในพื้นที่</p><h2 id="rain-heading" data-i18n="rainHeading">ฝนสะสม 24 ชั่วโมง</h2></div><a class="section-link" href="https://rayong.thaiwater.net/" target="_blank" rel="noopener noreferrer">ThaiWater ↗</a></div>
+      <div id="rainfall" class="rain-grid"><div class="skeleton short"></div></div>
+      <p class="section-note" data-i18n="rainNote">แสดงสถานีที่มีข้อมูลในอำเภอเมืองระยอง เรียงจากปริมาณฝนมากที่สุด ไม่ใช่การวัดปริมาณฝนทุกถนน</p>
+    </section>
+    <section class="section" aria-labelledby="forecast-heading">
+      <div class="section-head"><div><p class="section-kicker" data-i18n="forecastKicker">05 / พยากรณ์</p><h2 id="forecast-heading" data-i18n="forecastHeading">คาดการณ์ฝน 24 ชั่วโมงข้างหน้า</h2></div><a class="section-link" href="https://open-meteo.com/en/docs" target="_blank" rel="noopener noreferrer">Open-Meteo ↗</a></div>
+      <div id="forecast" class="forecast-panel panel"><div class="skeleton short"></div></div>
+      <p class="section-note" data-i18n="forecastNote">พยากรณ์จาก Open-Meteo สำหรับจุดกึ่งกลางตัวเมืองระยอง ใช้เพื่อวางแผนเบื้องต้นเท่านั้น ฝนจริงอาจต่างกันในแต่ละย่าน</p>
+    </section>
+    <section class="about panel"><div><p class="section-kicker" data-i18n="sourceKicker">ที่มาของข้อมูล</p><h2 data-i18n="sourceHeading">ตรวจสอบข้อมูลต้นทาง</h2><p data-i18n="sourceCopy">อ่างหนองปลาไหลอยู่ในชุดเขื่อนขนาดใหญ่ ส่วนดอกกรายและคลองใหญ่อยู่ในชุดอ่างขนาดกลาง ข้อมูลระดับน้ำและฝนมาจาก ThaiWater ทุกตัวเลขมีวันที่หรือเวลาของแหล่งข้อมูลกำกับ</p></div><div class="source-links"><a href="https://app.rid.go.th/reservoir/api/dam/public" target="_blank" rel="noopener noreferrer" data-i18n="largeSource">RID · เขื่อนขนาดใหญ่ ↗</a><a href="https://app.rid.go.th/reservoir/api/reservoir/public" target="_blank" rel="noopener noreferrer" data-i18n="mediumSource">RID · อ่างขนาดกลาง ↗</a><a href="https://rayong.thaiwater.net/wl" target="_blank" rel="noopener noreferrer" data-i18n="levelSource">ThaiWater · ระดับน้ำ ↗</a></div></section>
+  </main>
+  <footer class="wrap footer"><span data-i18n="footer">ทำเพื่อให้ชุมชนเข้าถึงข้อมูลสาธารณะ · ข้อมูลอาจล่าช้าหรือขาดหาย · </span><span id="footer-time">—</span></footer>
+  <script src="/app.js" defer></script>
+</body>
+</html>
