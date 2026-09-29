@@ -20,9 +20,24 @@ const gauges = { nongBua: 118, banKhaoBot: 505011 };
 const cache = new Map();
 
 async function json(url) {
-  const response = await fetch(url, { signal: AbortSignal.timeout(12000), headers: { accept: 'application/json' } });
-  if (!response.ok) throw new Error(`Source returned HTTP ${response.status}`);
-  return response.json();
+  try {
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(12000),
+      headers: {
+        accept: 'application/json, text/plain, */*',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+        'accept-language': 'th-TH,th;q=0.9,en;q=0.8',
+      },
+    });
+    if (!response.ok) {
+      console.error(`[UPSTREAM HTTP ERROR] ${url} -> HTTP ${response.status} ${response.statusText}`);
+      throw new Error(`Source returned HTTP ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error(`[UPSTREAM FETCH FAILED] ${url} -> ${error.message}`);
+    throw error;
+  }
 }
 
 async function cached(key, ttl, create) {
