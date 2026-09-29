@@ -34,6 +34,8 @@ Each local-rain card compares its displayed 24-hour reading with the same statio
 
 Each upstream reservoir percentage uses the same arrows against its previous RID daily percentage. The yellow threshold is within 0.1 percentage points; the icon tooltip shows the comparison reading and date.
 
+To reduce rate-limit errors, the app loads the current snapshot before historical charts, spaces requests for RID and ThaiWater, caches dated data for six hours, retries one HTTP 429 after its `Retry-After` delay, and uses a recent cached response if a refresh fails.
+
 ## Check
 
 ```sh

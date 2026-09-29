@@ -18,8 +18,56 @@ const sources = {
 const ids = { nongPlaLai: '100504', dokKrai: 'rsv357', khlongYai: 'rsv359' };
 const gauges = { nongBua: 118, banKhaoBot: 505011 };
 const cache = new Map();
+const upstreamSchedule = new Map();
 
-async function json(url) {
+function pause(milliseconds) {
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
+function upstreamCachePolicy(url) {
+  if (url.includes('/iframe/rain24_graph') || /\/(dam|reservoir)\/public\/\d{4}-\d{2}-\d{2}$/.test(url)) {
+    return { ttl: 6 * 60 * 60_000, stale: 24 * 60 * 60_000 };
+  }
+  if (url.startsWith(OPEN_METEO)) return { ttl: 30 * 60_000, stale: 2 * 60 * 60_000 };
+  return { ttl: 5 * 60_000, stale: 30 * 60_000 };
+}
+
+function upstreamInterval(host) {
+  if (host.endsWith('rid.go.th')) return 700;
+  if (host.endsWith('thaiwater.net')) return 350;
+  return 0;
+}
+
+async function waitForUpstreamSlot(url) {
+  const host = new URL(url).hostname;
+  const interval = upstreamInterval(host);
+  if (!interval) return;
+  const entry = upstreamSchedule.get(host) || { next: 0, cooldownUntil: 0 };
+  upstreamSchedule.set(host, entry);
+  while (true) {
+    const now = Date.now();
+    const scheduled = Math.max(now, entry.next, entry.cooldownUntil);
+    entry.next = scheduled + interval;
+    if (scheduled > now) await pause(scheduled - now);
+    if (Date.now() >= entry.cooldownUntil) return;
+  }
+}
+
+function rateLimitDelay(response) {
+  const seconds = Number(response.headers.get('retry-after'));
+  return Number.isFinite(seconds) && seconds > 0 ? Math.min(seconds * 1000, 30_000) : 5_000;
+}
+
+function cooldownUpstream(url, milliseconds) {
+  const host = new URL(url).hostname;
+  const entry = upstreamSchedule.get(host) || { next: 0, cooldownUntil: 0 };
+  entry.cooldownUntil = Math.max(entry.cooldownUntil, Date.now() + milliseconds);
+  entry.next = Math.max(entry.next, entry.cooldownUntil);
+  upstreamSchedule.set(host, entry);
+}
+
+async function fetchJson(url, retry = false) {
+  await waitForUpstreamSlot(url);
   try {
     const response = await fetch(url, {
       signal: AbortSignal.timeout(12000),
@@ -29,6 +77,13 @@ async function json(url) {
         'accept-language': 'th-TH,th;q=0.9,en;q=0.8',
       },
     });
+    if (response.status === 429 && !retry) {
+      const delay = rateLimitDelay(response);
+      console.warn(`[UPSTREAM RATE LIMITED] ${url}; retrying after ${delay}ms`);
+      cooldownUpstream(url, delay);
+      await pause(delay);
+      return fetchJson(url, true);
+    }
     if (!response.ok) {
       console.error(`[UPSTREAM HTTP ERROR] ${url} -> HTTP ${response.status} ${response.statusText}`);
       throw new Error(`Source returned HTTP ${response.status}`);
@@ -40,7 +95,12 @@ async function json(url) {
   }
 }
 
-async function cached(key, ttl, create) {
+function json(url) {
+  const policy = upstreamCachePolicy(url);
+  return cached(`upstream:${url}`, policy.ttl, () => fetchJson(url), policy.stale);
+}
+
+async function cached(key, ttl, create, staleTtl = 0) {
   const existing = cache.get(key);
   if (existing && Date.now() - existing.time < ttl) return existing.value;
   if (existing?.promise) return existing.promise;
@@ -48,10 +108,15 @@ async function cached(key, ttl, create) {
     cache.set(key, { time: Date.now(), value });
     return value;
   }).catch(error => {
+    if (existing?.value && Date.now() - existing.time < ttl + staleTtl) {
+      console.warn(`[USING STALE CACHE] ${key}; ${error.message}`);
+      cache.set(key, existing);
+      return existing.value;
+    }
     cache.delete(key);
     throw error;
   });
-  cache.set(key, { promise });
+  cache.set(key, { ...existing, promise });
   return promise;
 }
 
@@ -306,7 +371,11 @@ const server = http.createServer(async (request, response) => {
     }
     if (url.pathname === '/api/snapshot' || url.pathname === '/api/history') {
       const data = url.pathname === '/api/snapshot' ? await snapshot() : await history();
-      response.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }).end(JSON.stringify(data));
+      const maxAge = url.pathname === '/api/snapshot' ? 60 : 300;
+      response.writeHead(200, {
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': `public, max-age=${maxAge}, stale-while-revalidate=300`,
+      }).end(JSON.stringify(data));
       return;
     }
     const file = staticFiles[url.pathname];

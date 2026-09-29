@@ -197,7 +197,7 @@ function renderReleaseChart(days) {
 }
 
 async function getJson(url) {
-  const response = await fetch(url, { cache: 'no-store' });
+  const response = await fetch(url);
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   return response.json();
 }
@@ -239,13 +239,15 @@ async function load() {
   $('refresh').disabled = true;
   $('connection').textContent = t('updating');
   $('connection').classList.remove('error');
-  const [snapshot, history] = await Promise.allSettled([getJson('/api/snapshot'), getJson('/api/history')]);
+  const [snapshot] = await Promise.allSettled([getJson('/api/snapshot')]);
   if (snapshot.status === 'fulfilled') {
     latestSnapshot = snapshot.value;
     snapshotFailed = false;
   } else {
     snapshotFailed = !latestSnapshot;
   }
+  renderCurrent();
+  const [history] = await Promise.allSettled([getJson('/api/history')]);
   if (history.status === 'fulfilled') {
     latestHistory = history.value;
     historyFailed = false;
