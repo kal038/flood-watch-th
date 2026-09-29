@@ -35,3 +35,16 @@ test('uses the previous RID record only when today has no operational reservoir 
   assert.deepEqual(data.reservoirs.map(item => item.isFallback), [true, true, true]);
   assert.equal(data.reservoirs[1].outflow, 1.985);
 });
+
+test('summarizes the next 24 forecast hours without treating rain probability as rainfall', () => {
+  const data = normalizeSnapshot({
+    forecast: { latitude: 12.689, longitude: 101.25, timezone: 'Asia/Bangkok', hourly: {
+      time: ['2026-09-30T01:00', '2026-09-30T02:00'],
+      precipitation: [0.2, 3.4], precipitation_probability: [20, 80],
+    } },
+  });
+  assert.equal(data.forecast.total, 3.6);
+  assert.equal(data.forecast.peakProbability, 80);
+  assert.equal(data.forecast.peakPrecipitation, 3.4);
+  assert.equal(data.forecast.peakTime, '2026-09-30T02:00');
+});

@@ -117,6 +117,7 @@ export function normalizeSnapshot(parts, previous = {}) {
   const rainfall = (parts.rainfall?.data || [])
     .filter(item => item.geocode?.amphoe_code === '01' || item.geocode?.amphoe_name?.th === 'เมืองระยอง')
     .map(item => ({
+      stationId: item.station?.id || null,
       name: item.station?.tele_station_name?.th || 'ไม่ระบุ',
       nameEn: item.station?.tele_station_name?.en || null,
       subdistrict: item.geocode?.tumbon_name?.th || null,
@@ -146,6 +147,20 @@ export function normalizeSnapshot(parts, previous = {}) {
   };
 }
 
+async function rainfallWithPreviousReading(items) {
+  const results = await Promise.allSettled(items.map(async item => {
+    if (!item.stationId) return null;
+    const response = await json(`${THAIWATER}/iframe/rain24_graph?id=${item.stationId}`);
+    const displayedDate = String(item.dateTime || '').slice(0, 10);
+    const previous = (response.data || [])
+      .map(point => ({ date: point.rainfall_datetime, value: number(point.rainfall_value) }))
+      .filter(point => point.value !== null && point.date < displayedDate)
+      .sort((a, b) => b.date.localeCompare(a.date))[0];
+    return previous ? { ...item, previousAmount24h: previous.value, previousDate: previous.date } : item;
+  }));
+  return items.map((item, index) => results[index].status === 'fulfilled' && results[index].value ? results[index].value : item);
+}
+
 async function previousPublishedReservoirData(parts) {
   const dams = flattenRid(parts.dam, 'dam');
   const medium = flattenRid(parts.reservoir, 'reservoir');
@@ -164,6 +179,38 @@ async function previousPublishedReservoirData(parts) {
   };
 }
 
+function previousCalendarDate(date) {
+  const value = new Date(`${date}T12:00:00Z`);
+  value.setUTCDate(value.getUTCDate() - 1);
+  return value.toISOString().slice(0, 10);
+}
+
+async function reservoirsWithPreviousPercent(reservoirs) {
+  const groups = new Map();
+  reservoirs.forEach(record => {
+    if (!record?.date || record.percent === null) return;
+    const type = record.key === 'nongPlaLai' ? 'dam' : 'reservoir';
+    const date = previousCalendarDate(record.date);
+    groups.set(`${type}:${date}`, { type, date });
+  });
+  const responses = await Promise.allSettled([...groups.values()].map(async group => ({
+    ...group,
+    data: await json(`${RID}/${group.type}/public/${group.date}`),
+  })));
+  const history = new Map(responses.filter(result => result.status === 'fulfilled').map(result => {
+    const { type, date, data } = result.value;
+    return [`${type}:${date}`, flattenRid(data, type === 'dam' ? 'dam' : 'reservoir')];
+  }));
+  return reservoirs.map(record => {
+    if (!record?.date || record.percent === null) return record;
+    const type = record.key === 'nongPlaLai' ? 'dam' : 'reservoir';
+    const date = previousCalendarDate(record.date);
+    const prior = history.get(`${type}:${date}`)?.find(item => item.id === record.id);
+    const previousPercent = number(prior?.percent_storage);
+    return previousPercent === null ? record : { ...record, previousPercent, previousPercentDate: date };
+  });
+}
+
 async function snapshot() {
   return cached('snapshot', 5 * 60_000, async () => {
     const entries = await Promise.allSettled(Object.entries(sources).map(async ([key, url]) => [key, await json(url)]));
@@ -174,8 +221,14 @@ async function snapshot() {
       if (entry.status === 'fulfilled') parts[key] = entry.value[1];
       else errors[key] = entry.reason?.message || 'Unavailable';
     });
-    const previous = await previousPublishedReservoirData(parts);
-    return { ...normalizeSnapshot(parts, previous), errors };
+    const initial = normalizeSnapshot(parts);
+    const [previous, rainfall] = await Promise.all([
+      previousPublishedReservoirData(parts),
+      rainfallWithPreviousReading(initial.rainfall),
+    ]);
+    const normalized = normalizeSnapshot(parts, previous);
+    const reservoirs = await reservoirsWithPreviousPercent(normalized.reservoirs);
+    return { ...normalized, reservoirs, rainfall, errors };
   });
 }
 
